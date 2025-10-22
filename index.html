@@ -331,6 +331,7 @@
     <script>
         const NUM_MESAS = 20; 
         const ADMIN_PASSWORD = "montessori123"; // **** SENHA SECRETA ****
+        const RESERVATION_KEY = 'userReservationId'; // Chave para rastrear a reserva do usuário no localStorage
         
         const mapaEsquerdo = document.getElementById('lado-esquerdo');
         const mapaDireito = document.getElementById('lado-direito');
@@ -417,7 +418,7 @@
         }
 
 
-        // 3. RENDERIZAÇÃO DA LISTA DE INPUTS (ADICIONANDO O NOME PARA O MODO NÃO-ADM)
+        // 3. RENDERIZAÇÃO DA LISTA DE INPUTS 
         function renderizarListaInputs() {
             listaInputs.innerHTML = '';
 
@@ -433,7 +434,7 @@
             const li = document.createElement('li');
             const estado = reservas[id];
             
-            // CONTEÚDO PARA O MODO NÃO-ADM (AGORA INCLUI O NOME)
+            // CONTEÚDO PARA O MODO NÃO-ADM (INCLUI O NOME)
             let statusInfoContent = '';
             if (estado.reservado) {
                 // EXIBE O NOME DO ALUNO QUANDO RESERVADO
@@ -483,8 +484,18 @@
             return li;
         }
         
-        // 4. LÓGICA DE SELEÇÃO E RESERVA (Atualiza os campos de informação do usuário)
+        // 4. LÓGICA DE SELEÇÃO E RESERVA (ADICIONADA A RESTRIÇÃO DE 1 RESERVA)
         function abrirModalSelecao(idDesejado) { 
+            const isAdmin = listaContainer.classList.contains('admin-mode');
+            const userReservedId = localStorage.getItem(RESERVATION_KEY);
+
+            // 1. Verifica se já tem uma reserva (somente para não-ADM)
+            if (!isAdmin && userReservedId) {
+                alert(`Atenção: Você já reservou o assento ${userReservedId}. Para reservar outro, você deve primeiro liberar a reserva atual.`);
+                return;
+            }
+
+            // 2. Verifica se o assento já está ocupado
             if (reservas[idDesejado].reservado) {
                 alert(`O assento ${idDesejado} já está reservado por ${reservas[idDesejado].nome}.`);
                 return;
@@ -499,6 +510,11 @@
                 reservas[idDesejado].nome = nomeLimpa;
 
                 salvarReservas();
+                
+                // Salva a chave de reserva no navegador do usuário (AQUI A RESTRIÇÃO É ATIVADA)
+                if (!isAdmin) {
+                    localStorage.setItem(RESERVATION_KEY, idDesejado);
+                }
 
                 // 1. Atualiza o mapa
                 const assentoMapaAntigo = document.getElementById(`assento-${idDesejado}`);
@@ -515,31 +531,29 @@
                      statusElement.title = 'Reservado';
                 }
                 
-                const isAdmin = listaContainer.classList.contains('admin-mode');
-                
                 if (isAdmin) {
                      // Modo ADM: Atualiza input e botão
                      const inputElement = document.getElementById(`input-${idDesejado}`);
                      if (inputElement) { inputElement.value = nomeLimpa; }
                      const liberarBtn = document.querySelector(`.btn-liberar[data-id="${idDesejado}"]`);
                      if(liberarBtn) { liberarBtn.disabled = false; }
-                } else {
-                    // Modo Usuário: Atualiza o span de informação com o nome
-                    const infoElement = document.getElementById(`info-${idDesejado}`);
-                    if(infoElement) {
-                        infoElement.innerHTML = `Reservado por: <strong>${nomeLimpa}</strong>`;
-                        infoElement.title = nomeLimpa;
-                    }
+                } 
+                
+                // Modo Usuário e ADM: Atualiza o span de informação com o nome
+                const infoElement = document.getElementById(`info-${idDesejado}`);
+                if(infoElement) {
+                    infoElement.innerHTML = `Reservado por: <strong>${nomeLimpa}</strong>`;
+                    infoElement.title = nomeLimpa;
                 }
 
-                alert(`Assento ${idDesejado} reservado com sucesso para ${nomeLimpa}!`);
+                alert(`Assento ${idDesejado} reservado com sucesso para ${nomeLimpa}!\n\nVocê não poderá reservar outro assento neste navegador até que este seja liberado.`);
                 
             } else if (nomeAluno !== null) {
                 alert('Nome não fornecido. Reserva cancelada.');
             }
         }
         
-        // 5. FUNÇÕES DE ADM (Liberar e Limpar Tudo)
+        // 5. FUNÇÕES DE ADM (Liberar)
         window.liberarAssento = function(id) {
             if (!listaContainer.classList.contains('admin-mode')) {
                 alert('Acesso negado. Apenas o administrador pode liberar assentos.');
@@ -552,6 +566,11 @@
             reservas[id].reservado = false;
             reservas[id].nome = '';
             salvarReservas();
+            
+            // Remove o registro de reserva do localStorage do ADM (se for o ADM que a tinha feito)
+            if (localStorage.getItem(RESERVATION_KEY) === id) {
+                localStorage.removeItem(RESERVATION_KEY);
+            }
 
             // 1. Atualiza o mapa
             const assentoMapaAntigo = document.getElementById(`assento-${id}`);
@@ -591,6 +610,7 @@
             }
             if (confirm("ATENÇÃO: Você está prestes a LIMPAR TODAS as reservas feitas. Esta ação é irreversível.\n\nConfirme para continuar a exclusão total.")) {
                 localStorage.removeItem('reservasMontessoriano');
+                localStorage.removeItem(RESERVATION_KEY); // Limpa a chave de reserva do ADM também
                 gerarReservasIniciais(); 
                 renderizarMapa();
                 renderizarListaInputs();
@@ -622,6 +642,4 @@
         window.onload = iniciarSistema;
     </script>
 </body>
-
 </html>
-Renomeia para index.html
