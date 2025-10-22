@@ -102,8 +102,8 @@
             top: calc(80px + 70px); 
             left: 50%;
             transform: translateX(-50%);
-            /* ALTERAÇÃO: Diminui a largura da passarela */
-            width: 40px; 
+            /* ALTERAÇÃO: Diminui a largura da passarela para 30px */
+            width: 30px; 
             bottom: 0;
             background-color: #d90000;
             z-index: 1;
@@ -113,12 +113,12 @@
         .mesas-area {
             position: relative;
             display: flex;
-            /* Usamos 'space-between' para manter a separação central mínima */
-            justify-content: space-between; 
+            /* Usamos 'space-around' para distribuição */
+            justify-content: space-around; 
             align-items: flex-start;
-            /* Diminui a largura para juntar mais os lados */
-            width: 90%; 
-            max-width: 900px; 
+            /* Aumentei a largura para 95% para usar um pouco mais de espaço */
+            width: 95%; 
+            max-width: 950px; 
             margin: 0 auto;
             z-index: 2;
             padding-top: 0; 
@@ -129,8 +129,8 @@
             display: grid;
             grid-template-columns: 1fr 1fr; 
             grid-template-rows: repeat(5, 1fr); 
-            /* ALTERAÇÃO: Diminui a largura relativa para aproximar os grupos do centro */
-            width: 40%; 
+            /* ALTERAÇÃO: Reduzida a largura relativa para agrupamento */
+            width: 42%; 
             /* ALTERAÇÃO: Diminui o espaçamento horizontal e vertical para juntar mesas internas */
             grid-gap: 30px 40px; 
             position: relative;
@@ -368,7 +368,7 @@
             const initialReservas = {};
             for (let i = 1; i <= NUM_MESAS; i++) {
                 initialReservas[`${i}A`] = { reservado: false, nome: '' };
-                initialReservations[`${i}B`] = { reservado: false, nome: '' };
+                initialReservas[`${i}B`] = { reservado: false, nome: '' };
             }
             return initialReservas;
         }
