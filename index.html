@@ -130,6 +130,7 @@
         .lado-esquerdo, .lado-direito {
             display: grid;
             grid-template-columns: 1fr 1fr; 
+            /* 5 linhas para 20 mesas (10 de cada lado) */
             grid-template-rows: repeat(5, 1fr); 
             
             /* Largura exata para duas mesas de 100px mais um espaçamento de 40px */
@@ -198,9 +199,9 @@
             opacity: 0.9;
         }
 
-        /* Gira os textos para replicar o design da imagem */
-        .assento[data-id$="A"] { left: 0; transform: rotate(90deg) translateX(0) translateY(-8px); }
-        .assento[data-id$="B"] { right: 0; transform: rotate(90deg) translateX(0) translateY(8px); }
+        /* CORREÇÃO APLICADA: Ajusta o deslocamento vertical (translateY) após a rotação para evitar sobreposição da área de clique no centro da mesa. */
+        .assento[data-id$="A"] { left: 0; transform: rotate(90deg) translateX(0) translateY(-10px); }
+        .assento[data-id$="B"] { right: 0; transform: rotate(90deg) translateX(0) translateY(10px); }
 
         /* Estilo para assento indisponível */
         .assento.indisponivel {
@@ -346,16 +347,15 @@
     </div>
 
     <script>
+        // Número de mesas ajustado para 20
         const NUM_MESAS = 20; 
         const ADMIN_PASSWORD = "montessori123"; // **** SENHA SECRETA (Altere!) ****
         const RESERVATION_KEY = 'userReservationId'; 
         
-        // ** URL DO GOOGLE APPS SCRIPT WEB APP (AGORA COM SEU NOVO ID) **
-        const WEB_APP_ID = "AKfycbwGR0NjXs0WaBihJqhX2BbNXSBAQuWYJ468yPhn-K2sDZ6p_FTmCJA87FrIswzSdv2C"; // NOVO ID
+        // ** URL DO GOOGLE APPS SCRIPT WEB APP (MANTIDO) **
+        const WEB_APP_ID = "AKfycbwGR0NjXs0WaBihJqhX2BbNXSBAQuWYJ468yPhn-K2sDZ6p_FTmCJA87FrIswzSdv2C"; 
         const WEB_APP_URL = `https://script.google.com/macros/s/${WEB_APP_ID}/exec`;
 
-        const mapaEsquerdo = document.getElementById('lado-esquerdo');
-        const mapaDireito = document.getElementById('lado-direito');
         const mesasArea = document.getElementById('mesas-area');
         const listaInputs = document.getElementById('lista-mesas-inputs');
         const listaContainer = document.getElementById('lista-container');
@@ -384,7 +384,6 @@
         async function carregarReservas() {
             toggleLoading(true);
             try {
-                // Adicionamos um parâmetro de ação para garantir que o Web App entenda que é uma requisição GET de leitura
                 const response = await fetch(`${WEB_APP_URL}?action=read`, { method: 'GET' });
                 if (!response.ok) {
                     throw new Error(`Erro de rede: ${response.statusText}`);
@@ -395,11 +394,9 @@
                 if (data.status === 'success' && data.reservas && Object.keys(data.reservas).length > 0) {
                     reservas = data.reservas;
                 } else {
-                    // Se o servidor retornar sucesso, mas sem reservas, inicializa localmente
                     reservas = gerarReservasIniciais();
                 }
 
-                // Garante que todos os 40 assentos estão na estrutura
                 const initial = gerarReservasIniciais();
                 reservas = { ...initial, ...reservas };
                 
@@ -411,7 +408,6 @@
                 console.error("Erro ao carregar reservas do servidor:", error);
                 alert("ERRO CRÍTICO: Não foi possível carregar as reservas do servidor central. O mapa pode estar desatualizado.");
                 
-                // Em caso de falha total de comunicação, inicializa localmente
                 reservas = gerarReservasIniciais(); 
                 isDataReady = true;
                 toggleLoading(false);
@@ -419,26 +415,23 @@
             }
         }
 
-        // Salva dados no Web App (POST) - CORRIGIDO
+        // Salva dados no Web App (POST)
         async function salvarReservas(successMessage = "Dados salvos com sucesso!") {
             try {
                 const dataToSend = { 
-                    action: 'write', // Adiciona a ação para o Web App
+                    action: 'write', 
                     reservas: reservas 
                 };
                 
-                // Verifica se é uma chamada de limpeza total
                 if (successMessage === 'clear_all') {
                     dataToSend.reservas = 'clear_all';
                 }
 
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
-                    // Importante: Usamos text/plain para evitar problemas de CORS/preflight requests no Apps Script
                     headers: {
                         'Content-Type': 'text/plain', 
                     },
-                    // Enviamos o objeto JSON como uma string pura
                     body: JSON.stringify(dataToSend)
                 });
 
@@ -448,9 +441,7 @@
                 
                 const result = await response.json();
                 
-                if (result.status === 'success') {
-                    // Opcional: alert(successMessage);
-                } else {
+                if (result.status !== 'success') {
                     throw new Error(result.message || "Erro desconhecido no servidor.");
                 }
             } catch (error) {
@@ -477,7 +468,9 @@
             ladoDireito.className = 'lado-direito';
             ladoDireito.id = 'lado-direito';
 
+            // Mesas no lado Esquerdo (1, 2, 5, 6, 9, 10, 13, 14, 17, 18) - 10 mesas
             const mesasEsquerda = [1, 2, 5, 6, 9, 10, 13, 14, 17, 18];
+            // Mesas no lado Direito (3, 4, 7, 8, 11, 12, 15, 16, 19, 20) - 10 mesas
             const mesasDireita = [3, 4, 7, 8, 11, 12, 15, 16, 19, 20];
 
             mesasEsquerda.forEach(numMesa => {
@@ -660,8 +653,6 @@
                         infoElement.innerHTML = `Reservado por: <strong>${nomeLimpa}</strong>`;
                         infoElement.title = nomeLimpa;
                     }
-                    
-                    // alert(`Assento ${idDesejado} reservado com sucesso para ${nomeLimpa}!\n\nSeu mapa foi atualizado.`);
 
                 } else {
                     // Reverte os dados se falhar (para manter a consistência local)
@@ -771,6 +762,7 @@
                 renderizarMapa();
                 renderizarListaInputs();
             } else {
+                // Se falhar o carregamento, ainda tenta renderizar o mapa vazio para não quebrar a interface.
                 renderizarMapa();
                 renderizarListaInputs();
             }
